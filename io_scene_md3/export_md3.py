@@ -26,7 +26,7 @@ def gather_shader_info(mesh):
     'Returning uvmap name, texture name list'
     uv_maps = {}
     for material in mesh.materials:
-        for texture_slot in material.texture_slots:
+        for texture_slot in material.texture_paint_slots:
             if (
                 texture_slot is None
                 or not texture_slot.use
@@ -140,7 +140,7 @@ class MD3Exporter:
             a, b, t = self.mesh_sk_abs
             co = interp(kbs[a].data[i].co, kbs[b].data[i].co, t)
 
-        co = self.mesh_matrix * co
+        co = self.mesh_matrix @ co
         self.mesh_vco[frame].append(co)
         return co
 
@@ -165,9 +165,9 @@ class MD3Exporter:
     def surface_start_frame(self, i):
         self.switch_frame(i)
 
-        obj = self.scene.objects.active
+        obj = bpy.context.view_layer.objects.active
         self.mesh_matrix = obj.matrix_world
-        self.mesh = obj.to_mesh(self.scene, True, 'PREVIEW')
+        self.mesh = obj.to_mesh(bpy.context.depsgraph, True)
         self.mesh.calc_normals_split()
 
         self.mesh_sk_rel = None
@@ -190,9 +190,9 @@ class MD3Exporter:
 
     def pack_surface(self, surf_name):
         obj = self.scene.objects[surf_name]
-        self.scene.objects.active = obj
+        bpy.context.view_layer.objects.active = obj
         bpy.ops.object.modifier_add(type='TRIANGULATE')  # no 4-gons or n-gons
-        self.mesh = obj.to_mesh(self.scene, True, 'PREVIEW')
+        self.mesh = obj.to_mesh(bpy.context.depsgraph, True)
         self.mesh.calc_normals_split()
 
         self.mesh_uvmap_name, self.mesh_shader_list = gather_shader_info(self.mesh)
@@ -283,7 +283,7 @@ class MD3Exporter:
         self.surfNames = []
         self.tagNames = []
         for o in self.scene.objects:
-            if o.hide:  # skip hidden objects
+            if o.hide_viewport:  # skip hidden objects
                 continue
             if o.type == 'MESH':
                 self.surfNames.append(o.name)
