@@ -104,7 +104,7 @@ class MD3Importer:
                 data.nVerts,
                 start_pos + data.offVerts + frame * fmt.Vertex.size * data.nVerts,
                 self.read_surface_vert)
-        self.scene.objects.active = obj
+        bpy.context.view_layer.objects.active = obj
         self.context.object.active_shape_key_index = 0
         bpy.ops.object.shape_key_retime()
         for frame in range(data.nFrames):
@@ -123,7 +123,14 @@ class MD3Importer:
 
     def read_surface_shader(self, i):
         data = self.unpack(fmt.Shader)
-
+        '''
+        # trying to use nodes:
+        self.material.use_nodes = True
+        bsdf = self.material.node_tree.nodes["Principled BSDF"]
+        texture = self.material.node_tree.nodes.new('ShaderNodeTexImage')
+        self.material.node_tree.links.new(bsdf.inputs['Base Color'], texture.outputs['Color'])
+        '''
+        '''
         texture = bpy.data.textures.new(data.name, 'IMAGE')
         texture_slot = self.material.texture_slots.create(i)
         texture_slot.uv_layer = 'UVMap'
@@ -138,6 +145,7 @@ class MD3Importer:
                 image = bpy.data.images.load(fname)
                 texture.image = image
                 break
+        '''
 
     def read_surface(self, i):
         start_pos = self.file.tell()
@@ -166,7 +174,7 @@ class MD3Importer:
         self.material = bpy.data.materials.new('Main')
         self.mesh.materials.append(self.material)
 
-        self.mesh.uv_textures.new('UVMap')
+        self.mesh.uv_layers.new(name='UVMap')
         self.make_surface_UV_map(
             self.read_n_items(data.nVerts, start_pos + data.offST, self.read_surface_ST),
             self.mesh.uv_layers['UVMap'].data)
@@ -174,7 +182,7 @@ class MD3Importer:
         self.read_n_items(data.nShaders, start_pos + data.offShaders, self.read_surface_shader)
 
         obj = bpy.data.objects.new(data.name, self.mesh)
-        self.scene.objects.link(obj)
+        self.scene.collection.objects.link(obj)
 
         if data.nFrames > 1:
             self.read_mesh_animation(obj, data, start_pos)
@@ -183,8 +191,8 @@ class MD3Importer:
 
     def post_settings(self):
         self.scene.frame_set(0)
-        self.scene.game_settings.material_mode = 'GLSL'  # TODO: questionable
-        bpy.ops.object.lamp_add(type='SUN')  # TODO: questionable
+        #self.scene.game_settings.material_mode = 'GLSL'  # TODO: questionable
+        #bpy.ops.object.lamp_add(type='SUN')  # TODO: questionable
 
     def __call__(self, filename):
         self.filename = filename
