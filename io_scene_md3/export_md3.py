@@ -25,8 +25,9 @@ def prepare_name(name):
 def gather_shader_info(mesh):
     'Returning uvmap name, texture name list'
     uv_maps = {}
+    '''
     for material in mesh.materials:
-        for texture_slot in material.texture_paint_slots:
+        for texture_slot in material.texture_slots:
             if (
                 texture_slot is None
                 or not texture_slot.use
@@ -40,6 +41,10 @@ def gather_shader_info(mesh):
                 uv_maps[uv_map_name] = []
             # one UV map can be used by many textures
             uv_maps[uv_map_name].append(prepare_name(texture_slot.texture.name))
+    '''
+    uv_maps["UVMap"] = []
+    uv_maps["UVMap"].append("placeholder")
+    
     uv_maps = [(k, v) for k, v in uv_maps.items()]
     if len(uv_maps) <= 0:
         print('Warning: No UV maps found, zero filling will be used')
