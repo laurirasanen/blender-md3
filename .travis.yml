@@ -5,10 +5,8 @@ env:
     - "PYTHONPATH=."
 matrix:
   include:
-    - python: "3.5"
-      env: "BLENDER_TAR=http://download.blender.org/release/Blender2.79/blender-2.79-linux-glibc219-x86_64.tar.bz2"
-    - python: "3.4"
-      env: "BLENDER_TAR=http://download.blender.org/release/Blender2.72/blender-2.72-linux-glibc211-x86_64.tar.bz2"
+    - python: "3.7"
+      env: "BLENDER_TAR=https://builder.blender.org/download/blender-2.80-16639c6f1a31-linux-glibc224-x86_64.tar.bz2"
 before_install:
   - wget -O - ${BLENDER_TAR} | tar -jxf -
   - mv blender-* blender
