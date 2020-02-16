@@ -172,7 +172,7 @@ class MD3Exporter:
 
         obj = bpy.context.view_layer.objects.active
         self.mesh_matrix = obj.matrix_world
-        self.mesh = obj.to_mesh(bpy.context.depsgraph, True)
+        self.mesh = obj.to_mesh(preserve_all_data_layers=True)
         self.mesh.calc_normals_split()
 
         self.mesh_sk_rel = None
@@ -197,12 +197,14 @@ class MD3Exporter:
         obj = self.scene.objects[surf_name]
         bpy.context.view_layer.objects.active = obj
         bpy.ops.object.modifier_add(type='TRIANGULATE')  # no 4-gons or n-gons
-        self.mesh = obj.to_mesh(bpy.context.depsgraph, True)
+        #self.mesh = obj.to_mesh(bpy.context.depsgraph, True)
+        self.mesh = obj.to_mesh(preserve_all_data_layers=True)
         self.mesh.calc_normals_split()
 
         self.mesh_uvmap_name, self.mesh_shader_list = gather_shader_info(self.mesh)
         self.mesh_md3vert_to_loop, self.mesh_loop_to_md3vert = gather_vertices(
             self.mesh,
+            #None if self.mesh_uvmap_name is None else self.mesh.uv_layers[self.mesh_uvmap_name].data)
             None if self.mesh_uvmap_name is None else self.mesh.uv_layers[self.mesh_uvmap_name].data)
 
         nShaders = len(self.mesh_shader_list)
