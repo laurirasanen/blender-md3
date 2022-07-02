@@ -1,13 +1,13 @@
 bl_info = {
     "name": "Quake 3 Model (.md3)",
-    "author": "Vitaly Verhovodov",
-    "version": (0, 3, 1),
-    "blender": (2, 80, 0),
+    "author": "Vitaly Verhovodov & Contributors",
+    "version": (0, 4, 0),
+    "blender": (3, 2, 0),
     "location": "File > Import-Export > Quake 3 Model",
     "description": "Quake 3 Model format (.md3)",
     "warning": "",
     "wiki_url": "http://wiki.blender.org/index.php/Extensions:2.6/Py/Scripts/Import-Export/MD3",
-    "tracker_url": "https://github.com/neumond/blender-md3/issues",
+    "tracker_url": "https://github.com/nullprop/blender-md3/issues",
     "category": "Import-Export",
 }
 

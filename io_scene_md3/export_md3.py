@@ -25,25 +25,22 @@ def prepare_name(name):
 def gather_shader_info(mesh):
     'Returning uvmap name, texture name list'
     uv_maps = {}
-    '''
     for material in mesh.materials:
-        for texture_slot in material.texture_slots:
+        nodes = material.node_tree.nodes
+        for node in nodes:
             if (
-                texture_slot is None
-                or not texture_slot.use
-                or not texture_slot.uv_layer
-                or texture_slot.texture_coords != 'UV' or not texture_slot.texture
-                or texture_slot.texture.type != 'IMAGE'
+                'Base Color' not in node.inputs
+                or len(node.inputs['Base Color'].links) <= 0
             ):
                 continue
-            uv_map_name = texture_slot.uv_layer
-            if uv_map_name not in uv_maps:
+
+            base_color = node.inputs['Base Color']
+            link = base_color.links[0]
+            link_node = link.from_node
+            uv_map_name = mesh.uv_layers.active.name
+            if (uv_map_name not in uv_maps):
                 uv_maps[uv_map_name] = []
-            # one UV map can be used by many textures
-            uv_maps[uv_map_name].append(prepare_name(texture_slot.texture.name))
-    '''
-    uv_maps["UVMap"] = []
-    uv_maps["UVMap"].append("placeholder")
+            uv_maps[uv_map_name].append(prepare_name(link_node.image.name))
     
     uv_maps = [(k, v) for k, v in uv_maps.items()]
     if len(uv_maps) <= 0:
@@ -128,6 +125,10 @@ class MD3Exporter:
         )
 
     def pack_surface_triangle(self, i):
+        # FIXME: TRIANGULATE modifier has to be applied in blender or this throws
+        # Use mesh.loop_triangles instead of mesh.loops and get rid of modifier?
+        # https://docs.blender.org/api/current/info_gotcha.html#info-gotcha-mesh-faces
+        # https://docs.blender.org/api/current/bpy.types.Mesh.html
         assert self.mesh.polygons[i].loop_total == 3
         start = self.mesh.polygons[i].loop_start
         a, b, c = (self.mesh_loop_to_md3vert[j] for j in range(start, start + 3))
@@ -234,12 +235,15 @@ class MD3Exporter:
         # release here, to_mesh used for every frame
         bpy.ops.object.modifier_remove(modifier=obj.modifiers[-1].name)
 
+        print('- - - -')
         print('Surface {}: nVerts={}{} nTris={}{} nShaders={}{}'.format(
             surf_name,
             nVerts, ' (Too many!)' if nVerts > 4096 else '',
             nTris, ' (Too many!)' if nTris > 8192 else '',
             nShaders, ' (Too many!)' if nShaders > 256 else '',
         ))
+        print('Shader info:')
+        print(self.mesh_shader_list)
 
         return fmt.Surface.pack(
             magic=fmt.MAGIC,
