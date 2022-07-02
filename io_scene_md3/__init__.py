@@ -6,7 +6,7 @@ bl_info = {
     "location": "File > Import-Export > Quake 3 Model",
     "description": "Quake 3 Model format (.md3)",
     "warning": "",
-    "wiki_url": "http://wiki.blender.org/index.php/Extensions:2.6/Py/Scripts/Import-Export/MD3",
+    "wiki_url": "https://archive.blender.org/wiki/index.php/Extensions:2.6/Py/Scripts/Import-Export/MD3/",
     "tracker_url": "https://github.com/laurirasanen/blender-md3/issues",
     "category": "Import-Export",
 }
