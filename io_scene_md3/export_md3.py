@@ -22,7 +22,7 @@ def prepare_name(name):
     return name
 
 
-def gather_shader_info(mesh):
+def gather_shader_info(mesh, texture_dir):
     'Returning uvmap name, texture name list'
     uv_maps = {}
     for material in mesh.materials:
@@ -40,7 +40,7 @@ def gather_shader_info(mesh):
             uv_map_name = mesh.uv_layers.active.name
             if (uv_map_name not in uv_maps):
                 uv_maps[uv_map_name] = []
-            uv_maps[uv_map_name].append(prepare_name(link_node.image.name))
+            uv_maps[uv_map_name].append(texture_dir + prepare_name(link_node.image.name))
     
     uv_maps = [(k, v) for k, v in uv_maps.items()]
     if len(uv_maps) <= 0:
@@ -94,8 +94,11 @@ def find_interval(vs, t):
 
 
 class MD3Exporter:
-    def __init__(self, context):
+    def __init__(self, context, texture_dir = ""):
         self.context = context
+        self.texture_dir = texture_dir
+        if len(self.texture_dir) > 0 and not self.texture_dir.endswith("/"):
+            self.texture_dir += "/"
 
     @property
     def scene(self):
@@ -202,7 +205,7 @@ class MD3Exporter:
         self.mesh = obj.to_mesh(preserve_all_data_layers=True)
         self.mesh.calc_normals_split()
 
-        self.mesh_uvmap_name, self.mesh_shader_list = gather_shader_info(self.mesh)
+        self.mesh_uvmap_name, self.mesh_shader_list = gather_shader_info(self.mesh, self.texture_dir)
         self.mesh_md3vert_to_loop, self.mesh_loop_to_md3vert = gather_vertices(
             self.mesh,
             #None if self.mesh_uvmap_name is None else self.mesh.uv_layers[self.mesh_uvmap_name].data)
