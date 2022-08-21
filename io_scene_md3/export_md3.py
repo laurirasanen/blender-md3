@@ -53,26 +53,6 @@ def gather_shader_info(mesh, texture_dir):
         return uv_maps[0]
 
 
-def gather_vertices(mesh, uvmap_data=None):
-    md3vert_to_loop_map = []
-    loop_to_md3vert_map = []
-    index = {}
-    for i, loop in enumerate(mesh.loops):
-        key = (
-            loop.vertex_index,
-            tuple(loop.normal),
-            None if uvmap_data is None else tuple(uvmap_data[i].uv),
-        )
-        md3id = index.get(key, None)
-        if md3id is None:
-            md3id = len(md3vert_to_loop_map)
-            index[key] = md3id
-            md3vert_to_loop_map.append(i)
-        loop_to_md3vert_map.append(md3id)
-
-    return md3vert_to_loop_map, loop_to_md3vert_map
-
-
 def interp(a, b, t):
     return (b - a) * t + a
 
@@ -128,13 +108,7 @@ class MD3Exporter:
         )
 
     def pack_surface_triangle(self, i):
-        # FIXME: TRIANGULATE modifier has to be applied in blender or this throws
-        # Use mesh.loop_triangles instead of mesh.loops and get rid of modifier?
-        # https://docs.blender.org/api/current/info_gotcha.html#info-gotcha-mesh-faces
-        # https://docs.blender.org/api/current/bpy.types.Mesh.html
-        assert self.mesh.polygons[i].loop_total == 3
-        start = self.mesh.polygons[i].loop_start
-        a, b, c = (self.mesh_loop_to_md3vert[j] for j in range(start, start + 3))
+        a, b, c = (self.mesh.loops[j].vertex_index for j in self.mesh.loop_triangles[i].loops)
         return fmt.Triangle.pack(a, c, b)  # swapped c/b
 
     def get_evaluated_vertex_co(self, frame, i):
@@ -154,18 +128,15 @@ class MD3Exporter:
         return co
 
     def pack_surface_vert(self, frame, i):
-        loop_id = self.mesh_md3vert_to_loop[i]
-        vert_id = self.mesh.loops[loop_id].vertex_index
         return fmt.Vertex.pack(
-            *self.get_evaluated_vertex_co(frame, vert_id),
-            normal=tuple(self.mesh.loops[loop_id].normal))
+            *self.get_evaluated_vertex_co(frame, i),
+            normal=tuple(self.mesh.vertices[i].normal))
 
     def pack_surface_ST(self, i):
         if self.mesh_uvmap_name is None:
             s, t = 0.0, 0.0
         else:
-            loop_idx = self.mesh_md3vert_to_loop[i]
-            s, t = self.mesh.uv_layers[self.mesh_uvmap_name].data[loop_idx].uv
+            s, t = self.mesh.uv_layers[self.mesh_uvmap_name].data[i].uv
         return fmt.TexCoord.pack(s, t)
 
     def switch_frame(self, i):
@@ -177,6 +148,7 @@ class MD3Exporter:
         obj = bpy.context.view_layer.objects.active
         self.mesh_matrix = obj.matrix_world
         self.mesh = obj.to_mesh(preserve_all_data_layers=True)
+        self.mesh.calc_loop_triangles()
         self.mesh.calc_normals_split()
 
         self.mesh_sk_rel = None
@@ -200,20 +172,15 @@ class MD3Exporter:
     def pack_surface(self, surf_name):
         obj = self.scene.objects[surf_name]
         bpy.context.view_layer.objects.active = obj
-        bpy.ops.object.modifier_add(type='TRIANGULATE')  # no 4-gons or n-gons
-        #self.mesh = obj.to_mesh(bpy.context.depsgraph, True)
         self.mesh = obj.to_mesh(preserve_all_data_layers=True)
+        self.mesh.calc_loop_triangles()
         self.mesh.calc_normals_split()
 
         self.mesh_uvmap_name, self.mesh_shader_list = gather_shader_info(self.mesh, self.texture_dir)
-        self.mesh_md3vert_to_loop, self.mesh_loop_to_md3vert = gather_vertices(
-            self.mesh,
-            #None if self.mesh_uvmap_name is None else self.mesh.uv_layers[self.mesh_uvmap_name].data)
-            None if self.mesh_uvmap_name is None else self.mesh.uv_layers[self.mesh_uvmap_name].data)
 
         nShaders = len(self.mesh_shader_list)
-        nVerts = len(self.mesh_md3vert_to_loop)
-        nTris = len(self.mesh.polygons)
+        nVerts = len(self.mesh.vertices)
+        nTris = len(self.mesh.loop_triangles)
 
         self.scene.frame_set(self.scene.frame_start)
 
@@ -234,9 +201,6 @@ class MD3Exporter:
             self.mesh.free_normals_split()
 
         f.mark('offEnd')
-
-        # release here, to_mesh used for every frame
-        bpy.ops.object.modifier_remove(modifier=obj.modifiers[-1].name)
 
         print('- - - -')
         print('Surface {}: nVerts={}{} nTris={}{} nShaders={}{}'.format(
