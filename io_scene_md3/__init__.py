@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Quake 3 Model (.md3)",
     "author": "Vitaly Verhovodov & Contributors",
-    "version": (0, 4, 0),
+    "version": (0, 4, 1),
     "blender": (3, 2, 0),
     "location": "File > Import-Export > Quake 3 Model",
     "description": "Quake 3 Model format (.md3)",
@@ -38,10 +38,12 @@ class ExportMD3(bpy.types.Operator, ExportHelper):
     filename_ext = ".md3"
     filter_glob = StringProperty(default="*.md3", options={'HIDDEN'})
 
+    texture_dir: StringProperty(default="", name="Texture base path")
+
     def execute(self, context):
         try:
             from .export_md3 import MD3Exporter
-            MD3Exporter(context)(self.properties.filepath)
+            MD3Exporter(context, self.texture_dir)(self.properties.filepath)
             return {'FINISHED'}
         except struct.error:
             self.report({'ERROR'}, "Mesh does not fit within the MD3 model space. Vertex axies locations must be below 512 blender units.")
