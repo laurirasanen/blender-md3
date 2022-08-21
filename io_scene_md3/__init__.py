@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Quake 3 Model (.md3)",
     "author": "Vitaly Verhovodov & Contributors",
-    "version": (0, 4, 1),
+    "version": (0, 4, 2),
     "blender": (3, 2, 0),
     "location": "File > Import-Export > Quake 3 Model",
     "description": "Quake 3 Model format (.md3)",
@@ -38,7 +38,7 @@ class ExportMD3(bpy.types.Operator, ExportHelper):
     filename_ext = ".md3"
     filter_glob = StringProperty(default="*.md3", options={'HIDDEN'})
 
-    texture_dir: StringProperty(default="", name="Texture base path")
+    texture_dir: StringProperty(default="textures/", name="Texture base path")
 
     def execute(self, context):
         try:
