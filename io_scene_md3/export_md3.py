@@ -53,6 +53,15 @@ def gather_shader_info(mesh, texture_dir):
         return uv_maps[0]
 
 
+def gather_vertex_info(mesh):
+    vertex_to_loop = [0] * len(mesh.vertices)
+
+    for loop in mesh.loops:
+        vertex_to_loop[loop.vertex_index] = loop.index
+
+    return vertex_to_loop
+
+
 def interp(a, b, t):
     return (b - a) * t + a
 
@@ -136,7 +145,8 @@ class MD3Exporter:
         if self.mesh_uvmap_name is None:
             s, t = 0.0, 0.0
         else:
-            s, t = self.mesh.uv_layers[self.mesh_uvmap_name].data[i].uv
+            loop_idx = self.mesh_vertex_to_loop[i]
+            s, t = self.mesh.uv_layers[self.mesh_uvmap_name].data[loop_idx].uv
         return fmt.TexCoord.pack(s, t)
 
     def switch_frame(self, i):
@@ -148,8 +158,9 @@ class MD3Exporter:
         obj = bpy.context.view_layer.objects.active
         self.mesh_matrix = obj.matrix_world
         self.mesh = obj.to_mesh(preserve_all_data_layers=True)
+        self.mesh.split_faces()
+        self.mesh.calc_normals()
         self.mesh.calc_loop_triangles()
-        self.mesh.calc_normals_split()
 
         self.mesh_sk_rel = None
         self.mesh_sk_abs = None
@@ -173,10 +184,12 @@ class MD3Exporter:
         obj = self.scene.objects[surf_name]
         bpy.context.view_layer.objects.active = obj
         self.mesh = obj.to_mesh(preserve_all_data_layers=True)
+        self.mesh.split_faces()
+        self.mesh.calc_normals()
         self.mesh.calc_loop_triangles()
-        self.mesh.calc_normals_split()
 
         self.mesh_uvmap_name, self.mesh_shader_list = gather_shader_info(self.mesh, self.texture_dir)
+        self.mesh_vertex_to_loop = gather_vertex_info(self.mesh)
 
         nShaders = len(self.mesh_shader_list)
         nVerts = len(self.mesh.vertices)
@@ -193,12 +206,9 @@ class MD3Exporter:
         f.write(b''.join([self.pack_surface_ST(i) for i in range(nVerts)]))
         f.mark('offVerts')
 
-        self.mesh.free_normals_split()
-
         for frame in range(self.nFrames):
             self.surface_start_frame(frame)
             f.write(b''.join([self.pack_surface_vert(frame, i) for i in range(nVerts)]))
-            self.mesh.free_normals_split()
 
         f.mark('offEnd')
 
